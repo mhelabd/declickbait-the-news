@@ -6,16 +6,22 @@ import torch.nn.functional as F
 tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
 model = AutoModelForCausalLM.from_pretrained("distilgpt2")
 
-print(model)
 
 # class BaselineModel(nn.Module):
 #     def __init__():
 #         super().__init__()
+special_tokens = {'pad_token':'<|endoftext|>','sep_token':'*'}
+		#[SEP]
+tokenizer.add_special_tokens(special_tokens)
+print(tokenizer.sep_token)
 
-inputs = tokenizer.encode("There's not much room under this mushroom: Mantis prays for the weather to change as it shelters from the rain\xa0", return_tensors="pt")
+inputs = tokenizer.encode("<|endoftext|>", return_tensors="pt")
+
+print(inputs)
 #outputs = model(**inputs, labels=inputs["input_ids"])
 outputs = model.generate(inputs, max_length=200, do_sample=True)
-text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+text = tokenizer.decode([507], skip_special_tokens=True)
 print(text)
 
 # outputs = model.generate(inputs, max_length=200, do_sample=True)

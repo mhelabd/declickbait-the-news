@@ -4,7 +4,7 @@ from transformers import Trainer
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, AdamW, get_linear_schedule_with_warmup
 
-from dataset.dataset import ClickbaitDataset
+from dataset.dataset import ClickbaitDataset, TokenizedClickbaitDataset
 from params import *
 from torch.nn import CrossEntropyLoss
 
@@ -24,6 +24,7 @@ class GPTTrainer():
         output_prefix="GPTheadlines",
         test_mode=False,
         save_model_on_epoch=False,
+        device='cpu'
     ):
         self.model = model
         self.dataloader = dataloader
@@ -40,26 +41,37 @@ class GPTTrainer():
         self.scheduler = get_linear_schedule_with_warmup(
             self.optimizer, num_warmup_steps = self.warmup_steps, num_training_steps = -1
         )
-        self.loss = CrossEntropyLoss()
-
-    def train_2(self):
-        trainer = Trainer(
-            model=self.model, 
-            train_dataset=self.dataloader, 
-            eval_dataset=self.dataloader)
-        trainer.train()
+        self.device=device
         
     def train(self): 
-    
-        for epoch in tqdm(range(self.epochs)):
-            for batch in iter(self.dataloader):
-                title, body, score = batch # ASSUMES BATCH_SIZE = 1
-                tokenized_titles = self.tokenizer(list(title), padding=True, return_tensors="pt")['input_ids']
-                # print(tokenized_titles.shape)
-                tokenized_bodies = self.tokenizer(list(body), padding=True, return_tensors="pt")['input_ids']
-                output = self.model(tokenized_bodies, labels=tokenized_bodies)
-                loss = output[0]
-                loss.backward()
+        model.zero_grad()
+        for epoch in range(self.epochs):
+            print('Training epoch:', epoch)
+            for _, batch in tqdm(enumerate(self.dataloader), total=len(self.dataloader)):
+                # tokenized_titles = self.tokenizer(list(title), padding=True, return_tensors="pt")['input_ids']
+                # # print(tokenized_titles.shape)
+                # tokenized_bodies = self.tokenizer(list(body), padding=True, return_tensors="pt")['input_ids']
+                sequence, sep_idx, score = batch # ASSUMES BATCH_SIZE = 1
+                # sequence.to(self.device)
+                # self.model.to(self.device)
+
+                self.model.train() #TODO: try having this outside the for loops
+                # sequence = self.tokenizer.encode('Hi', return_tensors="pt")
+                output = self.model(sequence)
+                loss = torch.squeeze(output[0], dim=1)
+                # logits = output[0]
+                # shift_logits = logits[..., idx:-1, :].contiguous()
+                # shift_labels = labels[..., idx+1:].contiguous()
+                # loss = output[0]
+
+                # idx = batch['sum_idx'].item() # index of separator token
+                # # only consider loss on reference summary just like seq2seq models
+                # shift_logits = logits[..., idx:-1, :].contiguous()
+                # shift_labels = labels[..., idx+1:].contiguous()
+                # loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+                # loss = loss/args.gradient_accumulation_steps
+
+                loss.backward(torch.ones_like(loss))
                 
                 self.optimizer.step()
                 self.scheduler.step()
@@ -74,21 +86,27 @@ class GPTTrainer():
 
 if __name__ == "__main__":
     
-    train_data = ClickbaitDataset(TRAIN_PATH)
-    train_dataloader = DataLoader(train_data, batch_size=240)
+    # train_data = ClickbaitDataset(TRAIN_PATH)
+    train_dataset = TokenizedClickbaitDataset(TRAIN_PATH, saved_dataset_path=TOKENIZED_DATASET_PATH)
+    train_dataloader = DataLoader(train_dataset, batch_size=2)
     if torch.cuda.is_available():
         device="cuda"
     else:
         device="cpu"
+
     print(f'Using {device} device')
 
     tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-    tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+
     model = AutoModelForCausalLM.from_pretrained("distilgpt2")
-    train = GPTTrainer(model=model, dataloader=train_dataloader, tokenizer=tokenizer, batch_size=2)
+    # model = AutoModelForCausalLM.from_pretrained("gpt2")
+    train = GPTTrainer(model=model, dataloader=train_dataloader, tokenizer=tokenizer, batch_size=1, device=device, epochs=1)
     train.train()
     
-    
+    inputs = tokenizer.encode("hi", return_tensors="pt")
+    outputs = model.generate(inputs, max_length=200, do_sample=True)
+    text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    print(text)
     # model.to(device)
 
     # train(model, train_dataloader)
