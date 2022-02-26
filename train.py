@@ -20,7 +20,7 @@ class GPTTrainer():
         batch_size=16, 
         epochs=5, 
         lr=2e-5,
-        output_dir="./outputs/", 
+        output_dir=MODEL_SAVE_DIR, 
         output_prefix="GPTheadlines",
         test_mode=False,
         save_model_on_epoch=False,
@@ -55,36 +55,44 @@ class GPTTrainer():
         self.model.to(self.device)
         model.zero_grad()
         tr_loss = 0
+        loss = None
         for epoch in range(self.epochs):
             print('Training epoch:', epoch)
             for step, batch in tqdm(enumerate(self.dataloader), total=len(self.dataloader)):
-                sequence, sep_idx, score = batch 
-                labels = torch.clone(sequence)
+                sequences, title_masks, scores = batch 
+                labels = torch.clone(sequences)
 
-                sequence = sequence.to(self.device)
+                sequences = sequences.to(self.device)
+                title_masks = title_masks.to(self.device)
+                
                 labels = labels.to(self.device)
-
                 self.model.train()
-                output = self.model(sequence)
-
+                output = self.model(sequences)
                 logits = output[0] # batch_size, num_tokens, vocab_size
 
-                #Assumes Batch Size = 1
-                sep_idx = sep_idx.item()
-    
-                shift_logits = logits[..., sep_idx:-1, :].contiguous() #  batch_size, num_tokens[sep_idx[i]:], vocab_size
-                shift_labels = labels[..., sep_idx+1:].contiguous() #  batch_size, num_tokens[body_len:]
+                # #Assumes Batch Size = 1
+                # shift_logits = logits[..., sep_idx:-1, :].contiguous() #  batch_size, num_tokens[sep_idx[i]:], vocab_size
+                # print(shift_logits.shape)
+                print(title_masks.shape)
+                print(logits.shape)
+                # shift_logits = logits * title_masks #(batch_size, num_tokens, vocab_size) * (batch_size , num_tokens)
+                title_masks = (title_masks > 0).unsqueeze(dim=2)
+                print(title_masks.shape)
+                logits1 = logits.masked_fill(title_masks == 0, 0)
+                print(logits1.shape)
+                # x,y,z = logits.shape
+                # logits1 = logits1.view((x,y,z))
                 
+                shift_labels = labels[..., sep_idx+1:].contiguous() #  batch_size, num_tokens[body_len:]
                 loss = self.loss_fct(
                     shift_logits.view(-1, shift_logits.size(-1)), # batch_size*num_tokens[sep_idx[i]:], vocab_size
                     shift_labels.view(-1)
                 ) #  batch_size * num_tokens[body_len:]
-
+                loss = logits
                 loss = loss/self.gradient_accumulation_steps #1/32
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), self.max_grad_norm)
                 tr_loss += loss.item()
-                self.optimizer.step()
                 if (step + 1) % self.gradient_accumulation_steps == 0:
                     self.optimizer.step()
                     self.scheduler.step()  # Update learning rate schedule
@@ -96,8 +104,12 @@ class GPTTrainer():
                 if (step + 1)/self.gradient_accumulation_steps == 1.0:
                     print('After 1st update: ', end='\n\n')
                 #     generate_sample(valid_dataset, tokenizer, num=2, eval_step=False)
-
-                if True: torch.save(model.state_dict(), f"MODEL1-{epoch}.pt")
+                
+            if self.save_model_on_epoch:
+                torch.save(
+                    self.model.state_dict(),
+                    os.path.join(self.output_dir, f"{self.output_prefix}-{epoch}.pt"),
+                )
 
                 
 
@@ -132,7 +144,7 @@ if __name__ == "__main__":
     
     # train_data = ClickbaitDataset(TRAIN_PATH)
     train_dataset = TokenizedClickbaitDataset(TRAIN_PATH, saved_dataset_path=TOKENIZED_DATASET_PATH)
-    train_dataloader = DataLoader(train_dataset, batch_size=1)
+    train_dataloader = DataLoader(train_dataset, batch_size=2)
     if torch.cuda.is_available():
         device="cuda"
     else:
@@ -145,7 +157,7 @@ if __name__ == "__main__":
     model = AutoModelForCausalLM.from_pretrained("distilgpt2")
     model = model.to(device)
     # model = AutoModelForCausalLM.from_pretrained("gpt2")
-    train = GPTTrainer(model=model, dataloader=train_dataloader, tokenizer=tokenizer, batch_size=1, device=device, epochs=1)
+    train = GPTTrainer(model=model, dataloader=train_dataloader, tokenizer=tokenizer, batch_size=1, device=device, epochs=1, save_model_on_epoch=True)
     train.train_2()
     
     inputs = tokenizer.encode("hi", return_tensors="pt")

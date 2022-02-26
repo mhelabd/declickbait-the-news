@@ -19,6 +19,8 @@ MAX_SEQUENCE_LENGTH = 768
 
 BATCH_SIZE = 16
 
+MODEL_SAVE_DIR = BASE_DIR + "/outputs/"
+
 #TOKENIZER
 PAD_TOKEN = '<|endoftext|>'
 SEP_TOKEN = '*'

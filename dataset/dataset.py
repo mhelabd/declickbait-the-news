@@ -1,3 +1,4 @@
+from typing import final
 from params import *
 
 import torch
@@ -37,26 +38,26 @@ class TokenizedClickbaitDataset(Dataset):
 		if saved_dataset_path:
 			loaded = np.load(saved_dataset_path, allow_pickle=True)
 			self.sequences = loaded[0]
-			self.sep_idxs = loaded[1]
+			self.title_masks = loaded[1]
+			self.scores = loaded[2]
 			print("Finished loading dataset")
 		else:
 			self.sequences = []
-			self.sep_idxs = []
+			self.title_masks = []
 			for i, row in tqdm(self.df.iterrows(), total=len(self.df)):
-				sequence, sep_idx = self.pad_and_encode(row[DATA_BODY], row[DATA_TITLE])
+				sequence, title_mask = self.pad_and_encode(row[DATA_BODY], row[DATA_TITLE])
 				self.sequences.append(sequence)
-				self.sep_idxs.append(sep_idx)
+				self.title_masks.append(title_mask)
 			print("Finished encoding dataset")
-			
-			to_save = np.array([self.sequences, self.sep_idxs], dtype=object)
+			self.scores = np.array(self.df[DATA_SCORE])
+			to_save = np.array([self.sequences, self.title_masks, self.scores], dtype=object)
 			np.save(TOKENIZED_DATASET_PATH, to_save)
 
 	def __len__(self):
 		return len(self.df)
 
 	def __getitem__(self, index):
-		row = self.df.iloc[index]
-		return self.sequences[index], self.sep_idxs[index], row[DATA_SCORE]
+		return self.sequences[index], self.title_masks[index], self.scores[index]
 
 	def pad_and_encode(self, body, title, block_size=MAX_SEQUENCE_LENGTH):
 		encoded_body = self.tokenizer.encode(body, return_tensors="pt").squeeze(dim=0)
@@ -72,8 +73,10 @@ class TokenizedClickbaitDataset(Dataset):
 		content = torch.cat([encoded_body, encoded_sep_token, encoded_title])
 		final_sequence[:len(content)] = content
 		final_sequence = torch.tensor(final_sequence)
-		sep_idx = body_length
-		return final_sequence, sep_idx
+
+		title_mask = torch.zeros_like(final_sequence)
+		title_mask[body_length:] = 1
+		return final_sequence, title_mask
 
 
 
@@ -82,8 +85,8 @@ if __name__ == "__main__":
 	dataset_type = sys.argv[1]
 	dataset = None
 	if dataset_type == 'tokenized':
-		# dataset = TokenizedClickbaitDataset(TRAIN_PATH, saved_dataset_path=TOKENIZED_DATASET_PATH)
-		dataset = TokenizedClickbaitDataset(TEST_PATH)
+		dataset = TokenizedClickbaitDataset(TRAIN_PATH, saved_dataset_path=TOKENIZED_DATASET_PATH)
+		# dataset = TokenizedClickbaitDataset(TEST_PATH)
 	else:
 		dataset = ClickbaitDataset(TRAIN_PATH)
 

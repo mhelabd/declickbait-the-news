@@ -17,6 +17,8 @@ TOKENIZED_DATASET_PATH = BASE_DIR + "/dataset/data/tokenized.npy"
 BATCH_SIZE = 16
 MAX_SEQUENCE_LENGTH = 768
 
+MODEL_SAVE_DIR = BASE_DIR + "/outputs/"
+
 #TOKENIZER
 PAD_TOKEN = '<|endoftext|>'
 SEP_TOKEN = '*'
