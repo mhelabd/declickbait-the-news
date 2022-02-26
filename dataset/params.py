@@ -11,7 +11,10 @@ TRAIN_PATH = BASE_DIR + "/data/train.json"
 TEST_PATH = BASE_DIR + "/data/test.json"
 DEV_PATH = BASE_DIR + "/data/dev.json"
 
-TOKENIZED_DATASET_PATH = BASE_DIR + "/data/tokenized.npy"
+TOKENIZED_DATASET_PATH = BASE_DIR + "/data/tokenized.pt"
+TOKENIZED_DATASET_PATH_TRAIN = BASE_DIR + "/data/tokenized_train.pt"
+TOKENIZED_DATASET_PATH_DEV = BASE_DIR + "/data/tokenized_dev.pt"
+TOKENIZED_DATASET_PATH_TEST = BASE_DIR + "/data/tokenized_test.pt"
 
 ### MODEL PARAMS
 BATCH_SIZE = 16
