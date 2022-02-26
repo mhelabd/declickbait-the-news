@@ -97,6 +97,8 @@ class GPTTrainer():
                     print('After 1st update: ', end='\n\n')
                 #     generate_sample(valid_dataset, tokenizer, num=2, eval_step=False)
 
+                if True: torch.save(model.state_dict(), f"MODEL1-{epoch}.pt")
+
                 
 
     def train(self): 
