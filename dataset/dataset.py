@@ -68,7 +68,8 @@ class TokenizedClickbaitDataset(Dataset):
 			torch.save(to_save, save_dataset_path)
 
 	def __len__(self):
-		return len(self.df)
+		return 1
+		return self.sequences.shape[0]
 
 	def __getitem__(self, index):
 		return self.sequences[index], self.title_masks[index], self.scores[index]
@@ -126,7 +127,7 @@ if __name__ == "__main__":
 		dataset = TokenizedClickbaitDataset(
 			PATH, 
 			load_dataset_path=TOKENIZED_DATASET_PATH, 
-			wanted_scores=[int(i) for i in args.wanted_scores]
+			wanted_scores=None if args.wanted_scores == None else [int(i) for i in args.wanted_scores]
 			)
 	else:
 		dataset = TokenizedClickbaitDataset(
