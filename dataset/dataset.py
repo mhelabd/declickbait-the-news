@@ -30,7 +30,7 @@ class TokenizedClickbaitDataset(Dataset):
 	def __init__(self, json_path, saved_dataset_path=None):
 		self.df = pd.read_json(json_path)
 		self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-		special_tokens = {'pad_token':'<|endoftext|>','sep_token':'*'}
+		special_tokens = {'pad_token':PAD_TOKEN,'sep_token':SEP_TOKEN}
 		#[SEP]
 		self.tokenizer.add_special_tokens(special_tokens)
 		
