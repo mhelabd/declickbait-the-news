@@ -53,4 +53,6 @@ docs/_build/
 dataset/data/
 dataset/data_zip/
 
+outputs/
+metrics/
 
