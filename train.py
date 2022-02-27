@@ -55,7 +55,8 @@ class GPTTrainer():
         loss = None
         for epoch in range(self.epochs):
             print('Training epoch:', epoch)
-            for step, batch in tqdm(enumerate(self.dataloader), total=len(self.dataloader)):
+            pbar = tqdm(enumerate(self.dataloader), total=len(self.dataloader))
+            for step, batch in pbar:
                 sequences, title_masks, scores = batch   
                 sequences = sequences.type(torch.LongTensor)   
                 title_masks = title_masks.type(torch.LongTensor)              
@@ -91,11 +92,7 @@ class GPTTrainer():
                     self.optimizer.step()
                     self.scheduler.step()  # Update learning rate schedule
                     self.model.zero_grad()
-                    print("loss:", loss.item(), end='\n\n')
-                    
-                if (step + 1)/self.gradient_accumulation_steps == 1.0:
-                    print('After 1st update: ', end='\n\n')
-                #     generate_sample(valid_dataset, tokenizer, num=2, eval_step=False)
+                    pbar.set_description(f"loss: {loss.item()}")
                 
             if self.save_model_on_epoch:
                 torch.save(

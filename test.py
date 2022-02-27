@@ -1,4 +1,4 @@
-from collections import defaultdict
+import pandas as pd
 import torch
 from scipy import spatial
 import numpy as np
@@ -74,8 +74,9 @@ class Tester():
 
     def test(self):
         self.model.to(self.device)
-        test_outputs = defaultdict(list)
-        for sequence, title_mask, score in tqdm(self.dataset):
+        test_outputs = pd.DataFrame()
+        for i, data in enumerate(tqdm(self.dataset)):
+            sequence, title_mask, score = data
             sequence = sequence.type(torch.LongTensor).to(self.device)
             title_mask = title_mask.type(torch.LongTensor).to(self.device)
             score = score.to(self.device)
@@ -92,32 +93,35 @@ class Tester():
             gen_title_text = self.decode(gen_title)
             body_text = self.decode(body.squeeze(dim=0))
 
-            test_outputs['score'].append(score.item())
-            test_outputs['real_title'].append(real_title_text)
-            test_outputs['gen_title'].append(gen_title_text)
-            test_outputs['body_text'].append(body_text)
-            test_outputs['bleu_score'].append(sentence_bleu(
-                [real_title_text.split()], gen_title_text.split(), weights=(1,)))
-            test_outputs['cosine_similarity_spacey'].append(
-                self.cosine_similarity_spacey(real_title_text, gen_title_text))
-            test_outputs['cosine_similarity_bert_embed'].append(
-                self.cosine_similarity_bert(real_title_text, gen_title_text))
-            rouge_1, rouge_2 = self.rouge_score1(body_text, gen_title_text)
-            test_outputs['rouge1_f1_score_gen_title'].append(rouge_1)
-            test_outputs['rouge2_f1_score_gen_title'].append(rouge_2)
-            rouge_1, rouge_2 = self.rouge_score1(body_text, real_title_text)
-            test_outputs['rouge1_f1_score_real_title'].append(rouge_1)
-            test_outputs['rouge2_f1_score_real_title'].append(rouge_2)
+            rouge_1_gen_title, rouge_2_gen_title = self.rouge_score1(body_text, gen_title_text)
+            rouge_1_real_title, rouge_2_real_title = self.rouge_score1(body_text, real_title_text)
+
+            temp = pd.DataFrame(
+                {
+                    'score': score.item(),
+                    'real_title': real_title_text,
+                    'gen_title':gen_title_text,
+                    'body_text':body_text,
+                    'bleu_score':sentence_bleu([real_title_text.split()], gen_title_text.split(), weights=(1,)),
+                    'cosine_similarity_spacey': self.cosine_similarity_spacey(real_title_text, gen_title_text),
+                    'cosine_similarity_bert_embed': self.cosine_similarity_bert(real_title_text, gen_title_text),
+                    'rouge1_f1_score_gen_title': rouge_1_gen_title,
+                    'rouge2_f1_score_gen_title': rouge_2_gen_title,
+                    'rouge1_f1_score_real_title': rouge_1_real_title,
+                    'rouge2_f1_score_real_title': rouge_2_real_title,
+                }, 
+                index=[i],
+            )
+            test_outputs = test_outputs.append(temp)
+            print(test_outputs.memory_usage(deep=True))
         metric_outputs = {}
-        for metric, values in test_outputs.items():
-            if type(values[0]) != str:
-                metric_outputs[metric +
-                    '_metrics'] = self.get_metric(metric, values, verbose=False)
+        for metric in test_outputs.keys():
+            if type(test_outputs[metric][0]) != str:
+                metric_outputs[metric + '_metrics'] = self.get_metric(metric, test_outputs[metric], verbose=False)
         test_outputs.update(metric_outputs)
         with open(self.save_metrics_path, 'w+') as fp:
             json.dump(metric_outputs, fp)
-        with open(self.save_outputs_path, 'w+') as fp:
-            json.dump(test_outputs, fp)
+        test_outputs.to_json(self.save_outputs_path, index = 'true')
         return test_outputs
 
 

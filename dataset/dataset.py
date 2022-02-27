@@ -68,7 +68,6 @@ class TokenizedClickbaitDataset(Dataset):
 			torch.save(to_save, save_dataset_path)
 
 	def __len__(self):
-		return 1
 		return self.sequences.shape[0]
 
 	def __getitem__(self, index):
