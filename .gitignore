@@ -53,4 +53,11 @@ docs/_build/
 dataset/data/
 dataset/data_zip/
 
+metrics/*
+outputs/*
+modular_concurrent/src/bias_data/
+modular_concurrent/src/__MACOSX/
+modular_concurrent/src/TEST
+
+
 

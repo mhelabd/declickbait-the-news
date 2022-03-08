@@ -1,0 +1,13 @@
+# pack-refs with: peeled fully-peeled sorted 
+5245b720366884117c8567aeedd26e06d1c471dc refs/remotes/origin/add-license-1
+174a1222eded298d936a30ac7f060f9b6bf077e2 refs/remotes/origin/beam_search
+e37cc32f35841128c2a689a7a86ae8a202ab30de refs/remotes/origin/bert_baselines
+dc20fe55e48978ec0227ef65b65d9643ea19d849 refs/remotes/origin/bias_classification
+7023e563cfc7d97bb0342809fe94f60a9fb9af30 refs/remotes/origin/category_embeddings
+e70cfeac0468ac96d6224aeaac1da70f251e6e43 refs/remotes/origin/concat_baseline
+60ab18c77280ea0cc918c1ab033b13960b8b55d0 refs/remotes/origin/coverage
+d4b002f2160298c64894c5d9bcba23e12c12267f refs/remotes/origin/data-selection
+a96eab9e545fe67c228b61f0ee70f643689dc610 refs/remotes/origin/fitzgerald_hindi
+32fee3fdc4883d84b649bc771792d3ed2d118909 refs/remotes/origin/master
+395c6b574ad9f6db151a23776397cd007d54b2d2 refs/remotes/origin/nathan-analysis
+cd6aeeacba95115e2876e51ab4572f6b76e7e7db refs/remotes/origin/old_pointer_gen
