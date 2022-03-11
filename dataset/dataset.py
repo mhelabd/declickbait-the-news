@@ -1,9 +1,10 @@
+from lib2to3.pgen2 import token
 from params import *
 
 import torch
 from torch.utils.data import Dataset
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, BertTokenizer
 
 import pandas as pd
 import numpy as np
@@ -28,12 +29,22 @@ class ClickbaitDataset(Dataset):
 		return row[DATA_TITLE], row[DATA_BODY], row[DATA_SCORE]
 
 class TokenizedClickbaitDataset(Dataset):
-	def __init__(self, json_path, load_dataset_path=None, save_dataset_path=None, wanted_scores=None):
+	def __init__(
+		self,
+		json_path, 
+		load_dataset_path=None, 
+		save_dataset_path=None, 
+		wanted_scores=None, 
+		tokenizer="gpt"):
 		self.df = pd.read_json(json_path)
-		self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-		special_tokens = {'pad_token':PAD_TOKEN,'sep_token':SEP_TOKEN}
-		#[SEP]
-		self.tokenizer.add_special_tokens(special_tokens)
+		self.tokenizer_type = tokenizer
+		if self.tokenizer_type == "gpt":
+			self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+			#[SEP]
+			special_tokens = {'pad_token':PAD_TOKEN,'sep_token':SEP_TOKEN}
+			self.tokenizer.add_special_tokens(special_tokens)
+		else:
+			self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
 		if wanted_scores != None:	
 			assert load_dataset_path != None, "Wanted score only on saved datasets"
@@ -76,9 +87,12 @@ class TokenizedClickbaitDataset(Dataset):
 	def pad_and_encode(self, body, title, block_size=MAX_SEQUENCE_LENGTH):
 		encoded_body = self.tokenizer.encode(body, return_tensors="pt").squeeze(dim=0)
 		encoded_title = self.tokenizer.encode(title, return_tensors="pt").squeeze(dim=0)
-		encoded_sep_token =  self.tokenizer.encode(self.tokenizer.sep_token, return_tensors="pt").squeeze(dim=0)
-
-		final_sequence = self.tokenizer.encode(self.tokenizer.pad_token)*block_size
+		if self.tokenizer_type == "gpt":
+			encoded_sep_token =  self.tokenizer.encode(self.tokenizer.sep_token, return_tensors="pt").squeeze(dim=0)
+			final_sequence = self.tokenizer.encode(self.tokenizer.pad_token)*block_size
+		else:
+			encoded_sep_token =  self.tokenizer.encode('[SEP]', return_tensors="pt").squeeze(dim=0)[1].reshape(1,)
+			final_sequence = [encoded_sep_token]*block_size
 
 		encoded_title = encoded_title[:int(block_size/8)]
 		
@@ -104,6 +118,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-d", "--dataset", help="Dataset from: {[tr]ain, [d]ev, [te]st}", default="train")
 	parser.add_argument("--load", help="load made Dataset", action="store_true")
+	parser.add_argument("--bert_tokenizer", help="Use Bert Tokenizer", action="store_true")
 	parser.add_argument("-sc", "--wanted_scores", help="Wanted Scores", nargs="+", default=None)
 
 	args = parser.parse_args()
@@ -126,16 +141,17 @@ if __name__ == "__main__":
 		dataset = TokenizedClickbaitDataset(
 			PATH, 
 			load_dataset_path=TOKENIZED_DATASET_PATH, 
-			wanted_scores=None if args.wanted_scores == None else [int(i) for i in args.wanted_scores]
+			wanted_scores=None if args.wanted_scores == None else [int(i) for i in args.wanted_scores],
+			tokenizer= "bert" if args.bert_tokenizer else "gpt",
 			)
 	else:
 		dataset = TokenizedClickbaitDataset(
 			PATH, 
 			save_dataset_path=TOKENIZED_DATASET_PATH,
+			tokenizer= "bert" if args.bert_tokenizer else "gpt",
 		)
 	
 	
 	print(f'Dataset length: {len(dataset)}')
 	print('First entry:')
 	print(dataset[0])
-

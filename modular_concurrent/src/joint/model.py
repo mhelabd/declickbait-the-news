@@ -17,8 +17,8 @@ class JointModel(nn.Module):
         super(JointModel, self).__init__()
     
         # TODO SHARING EMBEDDINGS FROM DEBIAS
-        self.debias_model = debias_model
-        self.tagging_model = tagging_model
+        self.debias_model = debias_model # editing module
+        self.tagging_model = tagging_model # detection module
 
         self.token_sm = nn.Softmax(dim=2)
         self.time_sm = nn.Softmax(dim=1)
