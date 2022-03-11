@@ -52,7 +52,7 @@ class ClassifierModule(nn.Module):
       pbar = tqdm(enumerate(self.dataloader), total=len(self.dataloader))
 
       total_train_loss = 0
-      for _, batch in pbar:
+      for i, batch in pbar:
         sequences, _, scores = batch   
         sequences = sequences.type(torch.LongTensor)   
         attention_mask = sequences != 102.0 # Hacky way of getting padding attention mask
@@ -75,7 +75,7 @@ class ClassifierModule(nn.Module):
         loss.backward()
         self.optimizer.step()
         self.scheduler.step()
-        if batch % 1 == 0:
+        if i % 1 == 0:
           torch.save (
             self.model.state_dict(),
             os.path.join(self.output_dir, f"{self.output_prefix}-{batch}.pt"),
