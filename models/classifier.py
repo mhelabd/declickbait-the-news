@@ -24,6 +24,9 @@ class ClassifierModule(nn.Module):
     lr=2e-5,
     eps=1e-8, 
     epochs=4,
+    save_model_on_batch=False,
+    output_dir=MODEL_SAVE_DIR, 
+    output_prefix="BERTClassifier",
   ):
     super(ClassifierModule, self).__init__()
     self.model = BertForSequenceClassification.from_pretrained(
@@ -73,13 +76,18 @@ class ClassifierModule(nn.Module):
         loss.backward()
         self.optimizer.step()
         self.scheduler.step()
+        if self.save_model_on_batch and batch % 5 == 0:
+          torch.save (
+            self.model.state_dict(),
+            os.path.join(self.output_dir, f"{self.output_prefix}-{batch}.pt"),
+          )
 
       avg_train_loss = total_train_loss / len(self.dataloader)    
       print('Avg Train Loss:', avg_train_loss)
 
 if __name__ == "__main__":    
     train_dataset = TokenizedClickbaitDataset(TRAIN_PATH, load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN, tokenizer= "bert")
-    train_dataloader = DataLoader(train_dataset, batch_size=1)
+    train_dataloader = DataLoader(train_dataset, batch_size=1, save_model_batch=True)
     if torch.cuda.is_available():
         device="cuda"
     else:
