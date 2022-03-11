@@ -49,6 +49,7 @@ class ClassifierModule(nn.Module):
   
   def train(self):
     self.model.train()
+
     for epoch in range(self.epochs):
       print('Training epoch:', epoch)
       pbar = tqdm(enumerate(self.dataloader), total=len(self.dataloader))
@@ -58,6 +59,7 @@ class ClassifierModule(nn.Module):
         sequences, _, scores = batch   
         sequences = sequences.type(torch.LongTensor)   
         attention_mask = sequences != 102.0 # Hacky way of getting padding attention mask
+        attention_mask = attention_mask.to(self.device)
         scores = scores > 0.5
         labels = scores.to(torch.int64)
         labels = F.one_hot(labels, num_classes=2)
@@ -67,6 +69,7 @@ class ClassifierModule(nn.Module):
         self.model.zero_grad()
 
         logits = self.model(sequences, token_type_ids=None, attention_mask=attention_mask)['logits']
+        logits = logits.to(self.device)
         loss = self.loss(logits.to(torch.float32), labels.to(torch.float32))
         pbar.set_description(f"loss: {loss}")
         
@@ -88,7 +91,7 @@ class ClassifierModule(nn.Module):
 
 if __name__ == "__main__":    
     train_dataset = TokenizedClickbaitDataset(TRAIN_PATH, load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN, tokenizer= "bert")
-    train_dataloader = DataLoader(train_dataset, batch_size=64)
+    train_dataloader = DataLoader(train_dataset, batch_size=1)
     if torch.cuda.is_available():
         device="cuda"
     else:
@@ -96,7 +99,7 @@ if __name__ == "__main__":
 
     print(f'Using {device} device')
 
-    model = ClassifierModule(train_dataloader)
+    model = ClassifierModule(train_dataloader, device=device)
     model.train()
 
 
