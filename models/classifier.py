@@ -87,7 +87,7 @@ class ClassifierModule(nn.Module):
 
 if __name__ == "__main__":    
     train_dataset = TokenizedClickbaitDataset(TRAIN_PATH, load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN, tokenizer= "bert")
-    train_dataloader = DataLoader(train_dataset, batch_size=1, save_model_batch=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=64, save_model_batch=True)
     if torch.cuda.is_available():
         device="cuda"
     else:
