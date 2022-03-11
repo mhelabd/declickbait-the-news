@@ -80,7 +80,7 @@ class ClassifierModule(nn.Module):
         if i % 1 == 0:
           torch.save (
             self.model.state_dict(),
-            os.path.join(self.output_dir, f"{self.output_prefix}-{batch}.pt"),
+            os.path.join(self.output_dir, f"{self.output_prefix}-{i}.pt"),
           )
 
       avg_train_loss = total_train_loss / len(self.dataloader)    
