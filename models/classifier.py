@@ -77,7 +77,7 @@ class ClassifierModule(nn.Module):
         loss.backward()
         self.optimizer.step()
         self.scheduler.step()
-        if i % 1 == 0:
+        if i % 10 == 0:
           torch.save (
             self.model.state_dict(),
             os.path.join(self.output_dir, f"{self.output_prefix}-{i}.pt"),
