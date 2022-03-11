@@ -34,6 +34,7 @@ class ClassifierModule(nn.Module):
       output_attentions = False, 
       output_hidden_states = False, 
     )
+    self.output_dir = output_dir
     self.optimizer = AdamW(self.model.parameters(), lr = lr, eps=eps)
     self.epochs = epochs
     total_steps = len(dataloader) * epochs
