@@ -24,7 +24,6 @@ class ClassifierModule(nn.Module):
     lr=2e-5,
     eps=1e-8, 
     epochs=4,
-    save_model_on_batch=False,
     output_dir=MODEL_SAVE_DIR, 
     output_prefix="BERTClassifier",
   ):
@@ -76,7 +75,7 @@ class ClassifierModule(nn.Module):
         loss.backward()
         self.optimizer.step()
         self.scheduler.step()
-        if self.save_model_on_batch and batch % 5 == 0:
+        if batch % 1 == 0:
           torch.save (
             self.model.state_dict(),
             os.path.join(self.output_dir, f"{self.output_prefix}-{batch}.pt"),
@@ -95,7 +94,7 @@ if __name__ == "__main__":
 
     print(f'Using {device} device')
 
-    model = ClassifierModule(train_dataloader, save_model_on_batch=True)
+    model = ClassifierModule(train_dataloader)
     model.train()
 
 
