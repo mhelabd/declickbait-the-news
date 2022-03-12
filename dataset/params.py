@@ -4,6 +4,7 @@ import os
 DATA_TITLE = "Title"
 DATA_BODY = "Body"
 DATA_SCORE = "Score"
+DATA_SUMMARY = "Summary"
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 

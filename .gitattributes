@@ -1,0 +1,4 @@
+dataset/data/clickbait17-* filter=lfs diff=lfs merge=lfs -text
+dataset/data/clickbait17-test-170720 filter=lfs diff=lfs merge=lfs -text
+dataset/data/clickbait17-train-170331 filter=lfs diff=lfs merge=lfs -text
+dataset/data/clickbait17-validation-170630 filter=lfs diff=lfs merge=lfs -text
