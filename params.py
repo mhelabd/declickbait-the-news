@@ -9,12 +9,12 @@ DATA_SUMMARY = "Summary"
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
-TRAIN_PATH = BASE_DIR + "/dataset/data/train.json"
+TRAIN_PATH_T5 = BASE_DIR + "/dataset/data/train.json"
 TEST_PATH = BASE_DIR + "/dataset/data/test.json"
 DEV_PATH = BASE_DIR + "/dataset/data/dev.json"
 
 TOKENIZED_DATASET_PATH = BASE_DIR + "/dataset/data/tokenized.pt"
-TOKENIZED_DATASET_PATH_TRAIN = BASE_DIR + "/dataset/data/tokenized_train.pt"
+TOKENIZED_DATASET_PATH_TRAIN_T5 = BASE_DIR + "/dataset/data/tokenized_train.pt"
 TOKENIZED_DATASET_PATH_DEV = BASE_DIR + "/dataset/data/tokenized_dev.pt"
 TOKENIZED_DATASET_PATH_TEST = BASE_DIR + "/dataset/data/tokenized_test.pt"
 
