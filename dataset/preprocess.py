@@ -7,11 +7,14 @@ from transformers import pipeline
 
 import sys
 import os
+
+# from pandarallel import pandarallel
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
 
 tqdm.pandas()
+# pandarallel.initialize()
 
 article_filenames = [
 	'./data/clickbait17-train-170331/instances.jsonl',
@@ -24,8 +27,7 @@ cbscore_filenames = [
 	'./data/clickbait17-validation-170630/truth.jsonl',
 ]
 
-summarizer = pipeline("summarization")
-
+summarizer = pipeline("summarization", device=0)
 
 def merge_jsons(filenames, json_filename='data.json'):
 	data = pd.DataFrame()
@@ -37,8 +39,6 @@ def merge_jsons(filenames, json_filename='data.json'):
 
 # json structure:
     # {Title: "sdbs", Body: "sgsdg", score: 0.25}
-
-
 def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 	article_pd = pd.read_json(article_json)[['targetTitle', 'targetParagraphs']]
 	article_pd["targetParagraphs"] = article_pd["targetParagraphs"].str.join(" ")
@@ -46,6 +46,7 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 	cbscore_pd = pd.read_json(cbscore_json)[['truthMode']]
 
 	print("Creating summaries")
+	article_pd = article_pd[article_pd["targetParagraphs"] != ""]
 	article_pd["summary"] = article_pd["targetParagraphs"].progress_apply(create_summary)
 
 	dataset_pd = pd.concat([article_pd, cbscore_pd], axis=1)
@@ -61,7 +62,8 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 
 def create_summary(text):
 	return summarizer(text[:2000], max_length=20, min_length=5,
-					    do_sample=False)[0]['summary_text']
+							do_sample=False)[0]['summary_text']
+
 
 def divide_dataset(
 	dataset_json,
