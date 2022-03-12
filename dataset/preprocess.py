@@ -47,9 +47,12 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 
 	print("Creating summaries")
 	article_pd = article_pd[article_pd["targetParagraphs"] != ""]
-	article_pd["summary"] = article_pd["targetParagraphs"].progress_apply(create_summary)
+	# article_pd = article_pd[0:100]
+	for i, row in tqdm(article_pd.iterrows(), total=len(article_pd)):
+		article_pd.at[i, 'summary'] = create_summary(row['targetParagraphs'])
 
 	dataset_pd = pd.concat([article_pd, cbscore_pd], axis=1)
+	# dataset_pd = pd.concat([article_pd, cbscore_pd], axis=1).dropna()
 	dataset_pd.rename(columns={
 		"targetTitle": DATA_TITLE,
 		"targetParagraphs": DATA_BODY, 
@@ -61,7 +64,7 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 
 
 def create_summary(text):
-	return summarizer(text[:2000], max_length=20, min_length=5,
+	return summarizer(text[:1000], max_length=20, min_length=5,
 							do_sample=False)[0]['summary_text']
 
 
@@ -69,7 +72,7 @@ def divide_dataset(
 	dataset_json,
 	dev_size=0.1,
 	test_size=0.1,
-	train_filename=TRAIN_PATH,
+	train_filename=TRAIN_PATH_T5,
 	dev_filename=DEV_PATH,
 	test_filename=TEST_PATH,
 ):
