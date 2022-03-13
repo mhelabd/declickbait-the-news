@@ -54,19 +54,13 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 	#Limited Dataset
 	if mini:
 		article_pd = article_pd[0:20000]
-	article_pd = article_pd[35535+110:]
+
 	for i, row in tqdm(article_pd.iterrows(), total=len(article_pd)):
 		try:
 			article_pd.at[i, 'summary'] = create_summary(row['targetParagraphs'])
 		except Exception as e:
-			print(summarizer(row['targetParagraphs'][:2000], max_length=20, min_length=5,
-					    do_sample=False))
-			article_pd.at[i, 'summary'] = np.NaN
-			print(row['targetParagraphs'])
-			quit()
-
 			print("skipping data point")
-
+			article_pd.at[i, 'summary'] = np.NaN
 
 	dataset_pd = pd.concat([article_pd, cbscore_pd], axis=1).dropna()
 
@@ -81,7 +75,7 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 
 
 def create_summary(text):
-	return summarizer(text[:2000], max_length=20, min_length=5,
+	return summarizer(text[:500], max_length=20, min_length=5,
 					    do_sample=False)[0]['summary_text']
 
 def divide_dataset(
