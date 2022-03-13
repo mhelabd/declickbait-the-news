@@ -112,6 +112,8 @@ class Tester():
             )
             test_outputs = test_outputs.append(temp)
             print(test_outputs.memory_usage(deep=True))
+
+            if i > 200: break
         metric_outputs = {}
         for metric in test_outputs.keys():
             if type(test_outputs[metric][0]) != str:
@@ -120,6 +122,7 @@ class Tester():
         with open(self.save_metrics_path, 'w+') as fp:
             json.dump(metric_outputs, fp)
         test_outputs.to_json(self.save_outputs_path, index = 'true')
+        print("Saved to", self.save_metrics_path)
         return test_outputs
 
 

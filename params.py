@@ -10,6 +10,7 @@ DATA_SUMMARY = "Summary"
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 TRAIN_PATH_T5 = BASE_DIR + "/dataset/data/train.json"
+TRAIN_PATH = BASE_DIR + "dataset/data/train.json"
 TEST_PATH = BASE_DIR + "/dataset/data/test.json"
 DEV_PATH = BASE_DIR + "/dataset/data/dev.json"
 

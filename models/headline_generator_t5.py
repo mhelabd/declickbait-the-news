@@ -232,7 +232,8 @@ if __name__ == "__main__":
 	else:
 			device="cpu"
 
-	train_dataset = TokenizedT5Dataset(load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN_T5, tokenizer= "t5-small")
+	# train only on the non-clickbait titles
+	train_dataset = TokenizedT5Dataset(load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN_T5, tokenizer= "t5-small", wanted_scores=[0])
 	train_dataloader = DataLoader(train_dataset, batch_size=4, num_workers=12)
 	
 	bert_tokenizer = None
