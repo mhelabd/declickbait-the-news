@@ -22,15 +22,16 @@ class HeadlineGenerator(pl.LightningModule):
 		self,
 		dataloader,
 		epochs=40,
-		lr=0.1,
-		eps=0.01,
+		lr=.05,
+		eps=1e-8,
+		betas=(0.7,0.999),
+		warmup_steps=0,
 		classifier_loss_coef=10,
 		freeze_encoder=False,
 		use_classifier_for_loss=False,
 		use_summarizer_for_loss=False,
 		bert_tokenizer=None,
 		t5_tokenizer=None,
-		warmup_steps=0,
 		output_dir=MODEL_SAVE_DIR,
 		output_prefix="T5Generator",
 		use_wandb=False
@@ -64,6 +65,7 @@ class HeadlineGenerator(pl.LightningModule):
 
 		self.lr = lr
 		self.eps = eps
+		self.betas = betas
 		self.warmup_steps = warmup_steps
 		self.num_training_steps = len(dataloader) * epochs
 
@@ -196,10 +198,10 @@ class HeadlineGenerator(pl.LightningModule):
 		optimizer_grouped_parameters = [
 			{
 				"params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
-				"weight_decay": 0.1,
+				"weight_decay": 0.001,
 			},
 		]
-		optimizer = AdamW(optimizer_grouped_parameters, lr=self.lr, eps=self.eps)
+		optimizer = AdamW(optimizer_grouped_parameters, lr=self.lr, eps=self.eps, betas=self.betas)
 		self.opt = optimizer
 		scheduler = get_linear_schedule_with_warmup(
 			self.opt, num_warmup_steps=self.warmup_steps, num_training_steps=self.num_training_steps
@@ -230,8 +232,7 @@ if __name__ == "__main__":
 	else:
 			device="cpu"
 
-	TOKENIZED_DATASET_PATH_DEV_T5 = 'dataset/data/tokenized_train_t5.pt' #
-	train_dataset = TokenizedT5Dataset(load_dataset_path=TOKENIZED_DATASET_PATH_DEV_T5, tokenizer= "t5-small")
+	train_dataset = TokenizedT5Dataset(load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN_T5, tokenizer= "t5-small")
 	train_dataloader = DataLoader(train_dataset, batch_size=4, num_workers=12)
 	
 	bert_tokenizer = None

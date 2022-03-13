@@ -125,8 +125,8 @@ if __name__ == "__main__":
 	# TRAIN TEST OR DEV
 	if args.dataset[0:2].lower() == "tr":
 		args.dataset = "train"
-		PATH = TRAIN_PATH_T5
-		TOKENIZED_DATASET_PATH = TOKENIZED_DATASET_PATH_TRAIN_T5
+		PATH = TRAIN_PATH
+		TOKENIZED_DATASET_PATH = TOKENIZED_DATASET_PATH_TRAIN
 	elif args.dataset[0].lower() == "d":
 		args.dataset = "dev"
 		PATH = DEV_PATH
