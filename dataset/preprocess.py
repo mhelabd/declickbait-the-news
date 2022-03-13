@@ -58,7 +58,6 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 	article_pd.reset_index(drop=True, inplace=True)
 
 	article_summaries = []
-	article_pd = article_pd[:100]
 	for i, row in tqdm(article_pd.iterrows(), total=len(article_pd)):
 
 		article_summaries.append(create_summary(row['targetParagraphs']))
@@ -122,6 +121,4 @@ if __name__ == "__main__":
 	# merge_jsons(cbscore_filenames, json_filename=cbscore_json)
 	make_dataset(article_json, cbscore_json, json_filename=dataset_json)
 	convert_csv_to_json(dataset_json)
-	divide_dataset(dataset_json, train_filename='./data/data_train_temp.json',
-																dev_filename='./data/data_dev_temp.json',
-																test_filename='./data/data_test_temp.json')
+	divide_dataset(dataset_json)
