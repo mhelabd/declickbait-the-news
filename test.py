@@ -1,12 +1,15 @@
+from tabnanny import check
 import pandas as pd
 import torch
 from scipy import spatial
 import numpy as np
 
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, T5ForConditionalGeneration, T5Tokenizer
 from tqdm import tqdm
 import spacy
 import argparse
+from dataset.t5_dataset import TokenizedT5Dataset
+from models.headline_generator_t5 import HeadlineGenerator
 
 from params import *
 from dataset.dataset import TokenizedClickbaitDataset
@@ -36,9 +39,6 @@ class Tester():
         self.device = device
         self.save_metrics_path = save_metrics_path
         self.save_outputs_path = save_outputs_path
-
-    def decode(self, encoded):
-        return self.tokenizer.decode(encoded)
 
     def cosine_similarity_spacey(self, real, generated):
         s1 = nlp(real)
@@ -76,22 +76,20 @@ class Tester():
         self.model.to(self.device)
         test_outputs = pd.DataFrame()
         for i, data in enumerate(tqdm(self.dataset)):
-            sequence, title_mask, score = data
-            sequence = sequence.type(torch.LongTensor).to(self.device)
-            title_mask = title_mask.type(torch.LongTensor).to(self.device)
-            score = score.to(self.device)
-            shifted_title_mask = torch.roll(title_mask, shifts=1)
-            shifted_title_mask[0] = 0
-            body = torch.masked_select(
-                sequence, shifted_title_mask == 0).unsqueeze(dim=0).to(self.device)
-            real_title = torch.masked_select(sequence, shifted_title_mask == 1)
-            real_title = real_title[real_title != self.tokenizer.encode(
-                PAD_TOKEN)[0]]  # remove the pad tokens
-            gen_title = self.model.generate(body).to(self.device)
-            gen_title = gen_title[0][:15]
-            real_title_text = self.decode(real_title)
-            gen_title_text = self.decode(gen_title)
-            body_text = self.decode(body.squeeze(dim=0))
+            sequence, sequence_mask, summary, _, title, _, score = data
+            sequence = sequence.to(self.device)
+            sequence_mask = sequence_mask.to(self.device)
+            summary = summary.to(self.device).squeeze(dim=0)
+            title = title.to(self.device).squeeze(dim=0)
+
+            gen_title = self.model.generate(
+                input_ids=sequence,
+                attention_mask=sequence_mask,
+		    ).squeeze(dim=0).to(self.device)
+
+            real_title_text = self.tokenizer.decode(title)
+            gen_title_text = self.tokenizer.decode(gen_title)
+            body_text = self.tokenizer.decode(sequence.squeeze(dim=0))
 
             rouge_1_gen_title, rouge_2_gen_title = self.rouge_score1(body_text, gen_title_text)
             rouge_1_real_title, rouge_2_real_title = self.rouge_score1(body_text, real_title_text)
@@ -127,6 +125,9 @@ class Tester():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--model_type", help="T5 or GPT Default: T5", default="T5")
+    parser.add_argument("-c", "--use_class_loss", help="Use finetinued BERT clickbait classifier as part of loss. Default: false", action="store_true")
+    parser.add_argument("-s", "--use_summ_loss", help="Use BART summarized entries as part of loss. Default: false", action="store_true")
     parser.add_argument(
           "-d", "--dataset", help="Dataset from: {[tr]ain, [d]ev, [te]st}", default="dev")
     parser.add_argument("-sc", "--wanted_scores",
@@ -144,42 +145,62 @@ if __name__ == "__main__":
         PATH = TRAIN_PATH
         METRIC_PATH = METRICS_PATH_TRAIN
         OUTPUT_PATH = OUTPUT_PATH_TRAIN
-        TOKENIZED_DATASET_PATH = TOKENIZED_DATASET_PATH_TRAIN
+        TOKENIZED_DATASET_PATH = TOKENIZED_DATASET_PATH_TRAIN_T5 if args.model_type else TOKENIZED_DATASET_PATH_TRAIN
     elif args.dataset[0].lower() == "d":
         args.dataset = "dev"
         PATH = DEV_PATH
         METRIC_PATH = METRICS_PATH_DEV
         OUTPUT_PATH = OUTPUT_PATH_DEV
-        TOKENIZED_DATASET_PATH = TOKENIZED_DATASET_PATH_DEV
+        TOKENIZED_DATASET_PATH = TOKENIZED_DATASET_PATH_DEV_T5 if args.model_type else TOKENIZED_DATASET_PATH_DEV
     elif args.dataset[0:2].lower() == "te":
         args.dataset = "test"
         PATH = TEST_PATH
         METRIC_PATH = METRICS_PATH_TEST
         OUTPUT_PATH = OUTPUT_PATH_TEST
-        TOKENIZED_DATASET_PATH = TOKENIZED_DATASET_PATH_TEST
+        TOKENIZED_DATASET_PATH =  TOKENIZED_DATASET_PATH_TEST_T5 if args.model_type else TOKENIZED_DATASET_PATH_TEST
+
+    if args.model_type == "T5":
+        METRIC_PATH = METRIC_PATH[:METRIC_PATH.find('.json')] + "scores" + ','.join(args.model_type) + '.json'
+        OUTPUT_PATH = OUTPUT_PATH[:OUTPUT_PATH.find('.json')] + "scores" + ','.join(args.model_type) + '.json'
 
     if args.wanted_scores is not None:
         METRIC_PATH = METRIC_PATH[:METRIC_PATH.find('.json')] + "scores" + ','.join(args.wanted_scores) + '.json'
         OUTPUT_PATH = OUTPUT_PATH[:OUTPUT_PATH.find('.json')] + "scores" + ','.join(args.wanted_scores) + '.json'
 
-    model = AutoModelForCausalLM.from_pretrained("distilgpt2")
-    if args.load:
-        MODEL_PATH = max([f for f in os.listdir(MODEL_SAVE_DIR)]) # Gets latest model
-        weights = torch.load(MODEL_SAVE_DIR + MODEL_PATH)
-        model.load_state_dict(weights)
-
-    dataset = TokenizedClickbaitDataset(
-        PATH,
-        load_dataset_path=TOKENIZED_DATASET_PATH,
-        wanted_scores=None if args.wanted_scores == None else [int(i) for i in args.wanted_scores]
-    )
+    if args.model_type == "T5":
+        model = T5ForConditionalGeneration.from_pretrained('t5-small')
+        tokenizer = T5Tokenizer.from_pretrained('t5-small')
+        if args.load:
+            MODEL_PATH = max([f for f in os.listdir(MODEL_SAVE_DIR) if f.startswith(f'T5_HEADLINE-class_loss_{args.use_class_loss}-summ_loss_{args.use_summ_loss}') and not f.endswith('.part')]) # Gets latest model
+            checkpoint = torch.load(MODEL_SAVE_DIR+MODEL_PATH)['state_dict']
+            checkpoint = {k[6:]: v for k, v in checkpoint.items() if k.startswith('model') }
+            model.load_state_dict(checkpoint)
+    else:      
+        model = AutoModelForCausalLM.from_pretrained("distilgpt2")
+        tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+        if args.load:
+            MODEL_PATH = max([f for f in os.listdir(MODEL_SAVE_DIR) if f.startswith('BERTClassifier')]) # Gets latest model
+            weights = torch.load(MODEL_SAVE_DIR + MODEL_PATH)
+            model.load_state_dict(weights)
+    # TWO DATA FILES
+    if args.model_type == "T5":
+        dataset = TokenizedT5Dataset(
+            PATH,
+            load_dataset_path=TOKENIZED_DATASET_PATH,
+            wanted_scores=None if args.wanted_scores == None else [int(i) for i in args.wanted_scores],
+            tokenizer=tokenizer)
+    else:
+        dataset = TokenizedClickbaitDataset(
+            PATH,
+            load_dataset_path=TOKENIZED_DATASET_PATH,
+            wanted_scores=None if args.wanted_scores == None else [int(i) for i in args.wanted_scores]
+        )
 
     model.eval()
 
     nlp = spacy.load('en_core_web_md')
     sbert_model = SentenceTransformer('bert-base-nli-mean-tokens')
     with torch.no_grad():
-        tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
         # dev_dataset = TokenizedClickbaitDataset(DEV_PATH, saved_dataset_path=TOKENIZED_DATASET_PATH_DEV)
         tester = Tester(
             model, 

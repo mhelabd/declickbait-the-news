@@ -103,7 +103,7 @@ class GPTTrainer():
 if __name__ == "__main__":
     
     # train_data = ClickbaitDataset(TRAIN_PATH)
-    train_dataset = TokenizedClickbaitDataset(TRAIN_PATH, load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN, wanted_scores=[0])
+    train_dataset = TokenizedClickbaitDataset(TRAIN_PATH_T5, load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN_T5, wanted_scores=[0])
     train_dataloader = DataLoader(train_dataset, batch_size=1)
     if torch.cuda.is_available():
         device="cuda"

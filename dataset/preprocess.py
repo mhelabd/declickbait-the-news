@@ -41,10 +41,10 @@ def merge_jsons(filenames, json_filename='data.json'):
 	data.to_json(json_filename)
 
 def make_dataset(article_json, cbscore_json, json_filename='data.json'):
-	file_exists = exists(CSV_FILENAME)
+	# file_exists = exists(CSV_FILENAME)
 	
-	if file_exists:
-		os.remove(CSV_FILENAME)
+	# if file_exists:
+	# 	os.remove(CSV_FILENAME)
 
 
 	article_pd = pd.read_json(article_json)[['targetTitle', 'targetParagraphs']]
@@ -58,6 +58,8 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 	article_pd.reset_index(drop=True, inplace=True)
 
 	article_summaries = []
+	article_pd = article_pd[35536:]
+	article_pd.reset_index(drop=True, inplace=True)
 	for i, row in tqdm(article_pd.iterrows(), total=len(article_pd)):
 
 		article_summaries.append(create_summary(row['targetParagraphs']))
@@ -77,19 +79,21 @@ def make_dataset(article_json, cbscore_json, json_filename='data.json'):
 				'summary': DATA_SUMMARY,
 			}, inplace=True)
 
-			header = i < batchSize
+			# header = i < batchSize
+			header=False
 			big_boy_df.to_csv(CSV_FILENAME,
 				index=False,
 				header=header,
 				mode='a',#append data to csv file
 				chunksize=101)#size of data to append for each loop
-			print("APPENDED")
+			print("created", CSV_FILENAME)
 			article_summaries = []
 		
 
 def convert_csv_to_json(json_filename):
 	df = pd.read_csv(CSV_FILENAME)
 	df.to_json(json_filename)
+	print("created", json_filename)
 
 
 def create_summary(text):
@@ -117,8 +121,8 @@ if __name__ == "__main__":
 	article_json='./data/articles.json'
 	cbscore_json='./data/cbscore.json'
 	dataset_json='./data/data_temp.json'
-	# merge_jsons(article_filenames, json_filename=article_json)
-	# merge_jsons(cbscore_filenames, json_filename=cbscore_json)
+	merge_jsons(article_filenames, json_filename=article_json)
+	merge_jsons(cbscore_filenames, json_filename=cbscore_json)
 	make_dataset(article_json, cbscore_json, json_filename=dataset_json)
 	convert_csv_to_json(dataset_json)
 	divide_dataset(dataset_json)
