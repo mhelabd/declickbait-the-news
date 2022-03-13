@@ -7,6 +7,7 @@ from transformers import pipeline
 
 import sys
 import os
+from os.path import exists
 
 # from pandarallel import pandarallel
 current = os.path.dirname(os.path.realpath(__file__))
@@ -29,6 +30,8 @@ cbscore_filenames = [
 
 summarizer = pipeline("summarization", device=0)
 
+CSV_FILENAME = "./data/data_temp.csv"
+
 def merge_jsons(filenames, json_filename='data.json'):
 	data = pd.DataFrame()
 	for f in filenames:
@@ -37,30 +40,57 @@ def merge_jsons(filenames, json_filename='data.json'):
 		data = data.append(data_f, ignore_index=True)
 	data.to_json(json_filename)
 
-# json structure:
-    # {Title: "sdbs", Body: "sgsdg", score: 0.25}
 def make_dataset(article_json, cbscore_json, json_filename='data.json'):
+	file_exists = exists(CSV_FILENAME)
+	
+	if file_exists:
+		os.remove(CSV_FILENAME)
+
+
 	article_pd = pd.read_json(article_json)[['targetTitle', 'targetParagraphs']]
 	article_pd["targetParagraphs"] = article_pd["targetParagraphs"].str.join(" ")
 	# TODO: Consider other scores (truthMedian, truthMean, truthClass)
 	cbscore_pd = pd.read_json(cbscore_json)[['truthMode']]
 
 	print("Creating summaries")
+	article_pd = article_pd.join(cbscore_pd)
 	article_pd = article_pd[article_pd["targetParagraphs"] != ""]
-	# article_pd = article_pd[0:100]
+	article_pd.reset_index(drop=True, inplace=True)
+
+	article_summaries = []
+	article_pd = article_pd[:100]
 	for i, row in tqdm(article_pd.iterrows(), total=len(article_pd)):
-		article_pd.at[i, 'summary'] = create_summary(row['targetParagraphs'])
 
-	dataset_pd = pd.concat([article_pd, cbscore_pd], axis=1)
-	# dataset_pd = pd.concat([article_pd, cbscore_pd], axis=1).dropna()
-	dataset_pd.rename(columns={
-		"targetTitle": DATA_TITLE,
-		"targetParagraphs": DATA_BODY, 
-		'truthMode': DATA_SCORE, 
-		'summary': DATA_SUMMARY,
-	}, inplace=True)
+		article_summaries.append(create_summary(row['targetParagraphs']))
+		
+		batchSize = 20
 
-	dataset_pd.to_json(json_filename)
+		if ((i + 1) % batchSize) == 0:
+			article_summaries_df = pd.DataFrame(article_summaries)
+			article_summaries_df.rename(columns={ article_summaries_df.columns[0]: "summary" }, inplace = True)
+
+			big_boy_df = pd.concat([article_pd[i + 1 - batchSize:i+1].reset_index(), article_summaries_df], axis=1)
+			# big_boy_df = article_summaries_df.join(article_pd[i + 1 - batchSize:i+1])
+			big_boy_df.rename(columns={
+				"targetTitle": DATA_TITLE,
+				"targetParagraphs": DATA_BODY, 
+				'truthMode': DATA_SCORE, 
+				'summary': DATA_SUMMARY,
+			}, inplace=True)
+
+			header = i < batchSize
+			big_boy_df.to_csv(CSV_FILENAME,
+				index=False,
+				header=header,
+				mode='a',#append data to csv file
+				chunksize=101)#size of data to append for each loop
+			print("APPENDED")
+			article_summaries = []
+		
+
+def convert_csv_to_json(json_filename):
+	df = pd.read_csv(CSV_FILENAME)
+	df.to_json(json_filename)
 
 
 def create_summary(text):
@@ -87,8 +117,11 @@ def divide_dataset(
 if __name__ == "__main__":
 	article_json='./data/articles.json'
 	cbscore_json='./data/cbscore.json'
-	dataset_json='./data/data.json'
-	merge_jsons(article_filenames, json_filename=article_json)
-	merge_jsons(cbscore_filenames, json_filename=cbscore_json)
+	dataset_json='./data/data_temp.json'
+	# merge_jsons(article_filenames, json_filename=article_json)
+	# merge_jsons(cbscore_filenames, json_filename=cbscore_json)
 	make_dataset(article_json, cbscore_json, json_filename=dataset_json)
-	divide_dataset(dataset_json)
+	convert_csv_to_json(dataset_json)
+	divide_dataset(dataset_json, train_filename='./data/data_train_temp.json',
+																dev_filename='./data/data_dev_temp.json',
+																test_filename='./data/data_test_temp.json')

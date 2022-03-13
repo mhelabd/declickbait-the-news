@@ -14,10 +14,15 @@ TEST_PATH = BASE_DIR + "/data/test.json"
 DEV_PATH = BASE_DIR + "/data/dev.json"
 
 TOKENIZED_DATASET_PATH = BASE_DIR + "/data/tokenized.pt"
-TOKENIZED_DATASET_PATH_TRAIN_T5 = BASE_DIR + "/data/tokenized_train.pt"
 TOKENIZED_DATASET_PATH_TRAIN = BASE_DIR + "/data/tokenized_train.pt"
 TOKENIZED_DATASET_PATH_DEV = BASE_DIR + "/data/tokenized_dev.pt"
 TOKENIZED_DATASET_PATH_TEST = BASE_DIR + "/data/tokenized_test.pt"
+
+TOKENIZED_DATASET_PATH_T5 = BASE_DIR + "/data/tokenized_t5.pt"
+TOKENIZED_DATASET_PATH_TRAIN_T5 = BASE_DIR + "/data/tokenized_train_t5.pt"
+TOKENIZED_DATASET_PATH_DEV_T5 = BASE_DIR + "/data/tokenized_dev_t5.pt"
+TOKENIZED_DATASET_PATH_TEST_T5 = BASE_DIR + "/data/tokenized_test_t5.pt"
+
 
 METRICS_PATH_TRAIN = BASE_DIR + "../metrics/train_metric_outputs.json"
 METRICS_PATH_DEV = BASE_DIR + "../metrics/dev_metric_outputs.json"

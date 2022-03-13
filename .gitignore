@@ -59,5 +59,9 @@ modular_concurrent/src/bias_data/
 modular_concurrent/src/__MACOSX/
 modular_concurrent/src/TEST
 
+lightning_logs/
+
+wandb/
+tmp_trainer/
 
 

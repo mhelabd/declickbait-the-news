@@ -13,7 +13,7 @@ from params import *
 
 # BERT RECOMMENDED 
 # Batch size: 16, 32
-# Learning rate (Adam): 5e-5, 3e-5, 2e-5
+# Learning rate (Adam): 5e-5x, 3e-5, 2e-5
 # Number of epochs: 2, 3, 4
 class ClassifierModule(nn.Module):
   def __init__(
@@ -90,7 +90,7 @@ class ClassifierModule(nn.Module):
       print('Avg Train Loss:', avg_train_loss)
 
 if __name__ == "__main__":    
-    train_dataset = TokenizedClickbaitDataset(TRAIN_PATH, load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN, tokenizer= "bert")
+    train_dataset = TokenizedClickbaitDataset(TRAIN_PATH_T5, load_dataset_path=TOKENIZED_DATASET_PATH_TRAIN_T5, tokenizer= "bert")
     train_dataloader = DataLoader(train_dataset, batch_size=1)
     if torch.cuda.is_available():
         device="cuda"
