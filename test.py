@@ -98,8 +98,15 @@ class Tester():
             body_text = self.tokenizer.decode(sequence.squeeze(dim=0), skip_special_tokens=True)
             if body_text == "" or gen_title_text == "" or real_title_text == "":
                 continue
-            rouge_1_gen_title, rouge_2_gen_title = self.rouge_score1(body_text, gen_title_text)
-            rouge_1_real_title, rouge_2_real_title = self.rouge_score1(body_text, real_title_text)
+            try:
+                rouge_1_gen_title, rouge_2_gen_title = self.rouge_score1(body_text, gen_title_text)
+                rouge_1_real_title, rouge_2_real_title = self.rouge_score1(body_text, real_title_text)
+            except:
+                print("ERROR: NOT WORKING")
+                print("body_text:", body_text)
+                print("real_title_text:", real_title_text)
+                print("gen_title_text:", gen_title_text)
+                continue
 
             temp = pd.DataFrame(
                 {
