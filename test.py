@@ -175,6 +175,7 @@ if __name__ == "__main__":
         tokenizer = T5Tokenizer.from_pretrained('t5-small')
         if args.load:
             MODEL_PATH = max([f for f in os.listdir(MODEL_SAVE_DIR) if f.startswith(f'T5_HEADLINE-class_loss_{args.use_class_loss}-summ_loss_{args.use_summ_loss}') and not f.endswith('.part')]) # Gets latest model
+            print(MODEL_PATH)
             checkpoint = torch.load(MODEL_SAVE_DIR+MODEL_PATH)['state_dict']
             checkpoint = {k[6:]: v for k, v in checkpoint.items() if k.startswith('model') }
             model.load_state_dict(checkpoint)
