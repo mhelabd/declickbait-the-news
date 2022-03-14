@@ -84,13 +84,20 @@ class Tester():
 
             gen_title = self.model.generate(
                 input_ids=sequence,
+                num_beams=7,
                 attention_mask=sequence_mask,
-		    ).squeeze(dim=0).to(self.device)
+                do_sample=True,
+                repetition_penalty=1.2
+		    )
+            gen_title = gen_title.squeeze(dim=0).to(self.device)
+            real_title_text = self.tokenizer.decode(title, skip_special_tokens=True)
+            gen_title_text = self.tokenizer.decode(gen_title, skip_special_tokens=True)
+            print("title: ", real_title_text)
+            print("title: ", gen_title_text)
 
-            real_title_text = self.tokenizer.decode(title)
-            gen_title_text = self.tokenizer.decode(gen_title)
-            body_text = self.tokenizer.decode(sequence.squeeze(dim=0))
-
+            body_text = self.tokenizer.decode(sequence.squeeze(dim=0), skip_special_tokens=True)
+            if body_text == "" or gen_title_text == "" or real_title_text == "":
+                continue
             rouge_1_gen_title, rouge_2_gen_title = self.rouge_score1(body_text, gen_title_text)
             rouge_1_real_title, rouge_2_real_title = self.rouge_score1(body_text, real_title_text)
 
