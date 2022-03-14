@@ -163,8 +163,8 @@ if __name__ == "__main__":
         TOKENIZED_DATASET_PATH =  TOKENIZED_DATASET_PATH_TEST_T5 if args.model_type else TOKENIZED_DATASET_PATH_TEST
 
     if args.model_type == "T5":
-        METRIC_PATH = METRIC_PATH[:METRIC_PATH.find('.json')] + "scores" + ','.join(args.model_type) + '.json'
-        OUTPUT_PATH = OUTPUT_PATH[:OUTPUT_PATH.find('.json')] + "scores" + ','.join(args.model_type) + '.json'
+        METRIC_PATH = METRIC_PATH[:METRIC_PATH.find('.json')] + "model_" + args.model_type + "class_loss_" + str(args.use_class_loss) + "-summ_loss_" + str(args.use_summ_loss) + '.json'
+        OUTPUT_PATH = OUTPUT_PATH[:OUTPUT_PATH.find('.json')] + "model_" + args.model_type + "class_loss_" + str(args.use_class_loss) + "-summ_loss_" + str(args.use_summ_loss) + '.json'
 
     if args.wanted_scores is not None:
         METRIC_PATH = METRIC_PATH[:METRIC_PATH.find('.json')] + "scores" + ','.join(args.wanted_scores) + '.json'
